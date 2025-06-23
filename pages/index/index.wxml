@@ -1,0 +1,446 @@
+<!--index.wxml-->
+<navigation-bar title="记账小助手" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <!-- index.wxml -->
+<view class="container">
+  <!-- 头部区域 -->
+  <view class="header">
+    <view class="header-content">
+      <text class="title">个人财务管理系统</text>
+      <text class="subtitle">记录收支，管理资产，掌控财务状况</text>
+    </view>
+  </view>
+
+  <!-- 概览卡片 -->
+  <view class="overview-cards">
+    <view class="card income-card">
+      <view class="card-header">
+        <text class="card-title">总收入</text>
+        <image src="/assets/arrow-up.png" class="card-icon"></image>
+      </view>
+      <text class="card-value">¥{{totalIncome.toLocaleString()}}</text>
+      <text class="card-desc">本月收入</text>
+    </view>
+    
+    <view class="card expense-card">
+      <view class="card-header">
+        <text class="card-title">总支出</text>
+        <image src="/assets/arrow-down.png" class="card-icon"></image>
+      </view>
+      <text class="card-value">¥{{totalExpense.toLocaleString()}}</text>
+      <text class="card-desc">本月支出</text>
+    </view>
+    
+    <view class="card networth-card">
+      <view class="card-header">
+        <text class="card-title">净资产</text>
+        <image src="/assets/landmark.png" class="card-icon"></image>
+      </view>
+      <text class="card-value">¥{{netWorth.toLocaleString()}}</text>
+      <text class="card-desc">当前净值</text>
+    </view>
+    
+    <view class="card cashflow-card">
+      <view class="card-header">
+        <text class="card-title">现金流</text>
+        <image src="/assets/trending-up.png" class="card-icon"></image>
+      </view>
+      <text class="card-value {{cashFlow >= 0 ? 'positive' : 'negative'}}">
+        ¥{{cashFlow.toLocaleString()}}
+      </text>
+      <text class="card-desc">本月结余  资产现金结余: ¥{{totalnetWorth.toLocaleString()}}</text>
+    </view>
+  </view>
+
+  <!-- 标签页 -->
+  <view class="tabs">
+    <view 
+      class="tab-item {{activeTab === 'transactions' ? 'active' : ''}}" 
+      bindtap="switchTab" 
+      data-tab="transactions"
+    >
+      收支记录
+    </view>
+    <view 
+      class="tab-item {{activeTab === 'balance' ? 'active' : ''}}" 
+      bindtap="switchTab" 
+      data-tab="balance"
+    >
+      资产负债
+    </view>
+    <view 
+      class="tab-item {{activeTab === 'reports' ? 'active' : ''}}" 
+      bindtap="switchTab" 
+      data-tab="reports"
+    >
+      财务报表
+    </view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 收支记录 -->
+    <view wx:if="{{activeTab === 'transactions'}}" class="tab-content">
+      <view class="section">
+        <view class="section-header">
+          <text class="section-title">添加新记录</text>
+        </view>
+        
+        <view class="form">
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">类型</text>
+              <picker value="{{newTransaction.type}}" range="{{['收入', '支出']}}" bindchange="onTypeChange">
+                <view class="picker">
+                  <text>{{newTransaction.type === 'income' ? '收入' : '支出'}}</text>
+                  <image src="/assets/down-arrow.png" class="picker-arrow"></image>
+                </view>
+              </picker>
+            </view>
+            
+            <view class="form-group">
+              <text class="form-label">分类</text>
+              <picker value="{{newTransaction.category}}" range="{{categories}}" bindchange="onCategoryChange">
+                <view class="picker">
+                  <text>{{newTransaction.category || '选择分类'}}</text>
+                  <image src="/assets/down-arrow.png" class="picker-arrow"></image>
+                </view>
+              </picker>
+            </view>
+          </view>
+          
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">金额 (¥)</text>
+              <input 
+                type="number" 
+                value="{{newTransaction.amount}}" 
+                placeholder="输入金额"
+                bindinput="onAmountChange"
+                class="form-input"
+              />
+            </view>
+            
+            <view class="form-group">
+              <text class="form-label">日期</text>
+              <picker mode="date" value="{{newTransaction.date}}" bindchange="onDateChange">
+                <view class="picker">
+                  <text>{{newTransaction.date || '选择日期'}}</text>
+                  <image src="/assets/calendar.png" class="picker-icon"></image>
+                </view>
+              </picker>
+            </view>
+          </view>
+          
+          <view class="form-group">
+            <text class="form-label">描述</text>
+            <input 
+              value="{{newTransaction.description}}" 
+              placeholder="输入描述"
+              bindinput="onDescriptionChange"
+              class="form-input"
+            />
+          </view>
+          
+          <button 
+            bindtap="addTransaction" 
+            class="add-button"
+            disabled="{{isAdding}}"
+          >
+            <image src="/assets/plus-circle.png" class="button-icon"></image>
+            {{isAdding ? '添加中...' : '添加记录'}}
+          </button>
+        </view>
+      </view>
+      
+      <view class="section">
+        <view class="section-header">
+          <text class="section-title">交易历史</text>
+          
+          <view class="filter-container">
+            <view class="filter-group">
+              <picker mode="date" value="{{transactiondateRange.start}}" bindchange="onStartDateChange">
+                <view class="date-picker">
+                  <text>{{transactiondateRange.start || '开始日期'}}</text>
+                </view>
+              </picker>
+              <text class="date-separator">至</text>
+              <picker mode="date" value="{{transactiondateRange.end}}" bindchange="onEndDateChange">
+                <view class="date-picker">
+                  <text>{{transactiondateRange.end || '结束日期'}}</text>
+                </view>
+              </picker>
+            </view>
+            
+            <view class="filter-group">
+              <picker value="{{inoutfilterCategory}}" range="{{['全部', '收入', '支出']}}" bindchange="onInoutFilterChange">
+                <view class="filter-picker">
+                  <text>{{inoutfilterCategory || '收支类型'}}</text>
+                  <image src="/assets/filter.png" class="filter-icon"></image>
+                </view>
+              </picker>
+              
+              <picker value="{{filterCategory}}" range="{{['全部', ...categories]}}" bindchange="onCategoryFilterChange">
+                <view class="filter-picker">
+                  <text>{{filterCategory || '所有分类'}}</text>
+                  <image src="/assets/filter.png" class="filter-icon"></image>
+                </view>
+              </picker>
+            </view>
+          </view>
+        </view>
+        
+        <view class="transaction-table">
+          <!-- 表头 -->
+          <view class="table-header">
+            <text class="header-cell">日期</text>
+            <text class="header-cell">类型</text>
+            <text class="header-cell">分类</text>
+            <text class="header-cell">金额</text>
+            <text class="header-cell">描述</text>
+            <text class="header-cell">操作</text>
+          </view>
+          
+          <!-- 表体 -->
+          <scroll-view scroll-y class="table-body">
+            <block wx:if="{{isLoading}}">
+              <view class="table-row">
+                <text class="table-cell loading">加载中...</text>
+              </view>
+            </block>
+            
+            <block wx:elif="{{filteredTransactions.length === 0}}">
+              <view class="table-row">
+                <text class="table-cell">暂无交易记录</text>
+              </view>
+            </block>
+            
+            <block wx:else>
+              <block wx:for="{{filteredTransactions}}" wx:key="id">
+                <view class="table-row">
+                  <text class="table-cell">{{item.date}}</text>
+                  <text class="table-cell">
+                    <text class="tag {{item.type === 'income' ? 'income-tag' : 'expense-tag'}}">
+                      {{item.type === 'income' ? '收入' : '支出'}}
+                    </text>
+                  </text>
+                  <text class="table-cell">{{item.category}}</text>
+                  <text class="table-cell {{item.type === 'income' ? 'income-value' : 'expense-value'}}">
+                    {{item.type === 'income' ? '+' : '-'}}{{item.amount}}
+                  </text>
+                  <text class="table-cell">{{item.description}}</text>
+                  <text class="table-cell">
+                    <button class="delete-button" bindtap="deleteTransaction" data-id="{{item.id}}">删除</button>
+                  </text>
+                </view>
+              </block>
+            </block>
+          </scroll-view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 资产负债 -->
+    <view wx:if="{{activeTab === 'balance'}}" class="tab-content">
+      <view class="assets-section">
+        <view class="section-header">
+          <image src="/assets/wallet.png" class="section-icon"></image>
+          <text class="section-title">资产</text>
+        </view>
+        
+        <view class="form">
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">资产名称</text>
+              <input 
+                value="{{newAsset.name}}" 
+                placeholder="如：银行存款"
+                bindinput="onAssetNameChange"
+                class="form-input"
+              />
+            </view>
+          </view>
+          
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">价值 (¥)</text>
+              <input 
+                type="number" 
+                value="{{newAsset.value}}" 
+                placeholder="输入价值"
+                bindinput="onAssetValueChange"
+                class="form-input"
+              />
+            </view>
+          </view>
+          
+          <button bindtap="addAsset" class="add-button">
+            <image src="/assets/plus-circle.png" class="button-icon"></image>
+            添加资产
+          </button>
+        </view>
+        
+        <view class="asset-list">
+          <block wx:if="{{assets.length === 0}}">
+            <view class="empty-state">
+              <image src="/assets/empty.png" class="empty-icon"></image>
+              <text class="empty-text">暂无资产记录</text>
+            </view>
+          </block>
+          
+          <block wx:else>
+            <block wx:for="{{assets}}" wx:key="id">
+              <view class="asset-item">
+                <view class="asset-info">
+                  <text class="asset-name">{{item.name}}</text>
+                  <text class="asset-value">¥{{item.value.toLocaleString()}}</text>
+                </view>
+                <button class="delete-button" bindtap="deleteAsset" data-id="{{item.id}}">删除</button>
+              </view>
+            </block>
+          </block>
+        </view>
+      </view>
+      
+      <view class="liabilities-section">
+        <view class="section-header">
+          <image src="/assets/credit-card.png" class="section-icon"></image>
+          <text class="section-title">负债</text>
+        </view>
+        
+        <view class="form">
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">负债名称</text>
+              <input 
+                value="{{newLiability.name}}" 
+                placeholder="如：信用卡欠款"
+                bindinput="onLiabilityNameChange"
+                class="form-input"
+              />
+            </view>
+          </view>
+          
+          <view class="form-row">
+            <view class="form-group">
+              <text class="form-label">金额 (¥)</text>
+              <input 
+                type="number" 
+                value="{{newLiability.value}}" 
+                placeholder="输入金额"
+                bindinput="onLiabilityValueChange"
+                class="form-input"
+              />
+            </view>
+          </view>
+          
+          <button bindtap="addLiability" class="add-button">
+            <image src="/assets/plus-circle.png" class="button-icon"></image>
+            添加负债
+          </button>
+        </view>
+        
+        <view class="liability-list">
+          <block wx:if="{{liabilities.length === 0}}">
+            <view class="empty-state">
+              <image src="/assets/empty.png" class="empty-icon"></image>
+              <text class="empty-text">暂无负债记录</text>
+            </view>
+          </block>
+          
+          <block wx:else>
+            <block wx:for="{{liabilities}}" wx:key="id">
+              <view class="liability-item">
+                <view class="liability-info">
+                  <text class="liability-name">{{item.name}}</text>
+                  <text class="liability-value">¥{{item.value.toLocaleString()}}</text>
+                </view>
+                <button class="delete-button" bindtap="deleteLiability" data-id="{{item.id}}">删除</button>
+              </view>
+            </block>
+          </block>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 财务报表 -->
+    <view wx:if="{{activeTab === 'reports'}}" class="tab-content">
+      <view class="section">
+        <view class="section-header">
+          <text class="section-title">财务报表</text>
+          
+          <view class="report-filters">
+            <picker value="{{monthinoutfilterCategory}}" range="{{['全部', '收入', '支出']}}" bindchange="onMonthInoutFilterChange">
+              <view class="filter-picker">
+                <text>{{monthinoutfilterCategory || '收支类型'}}</text>
+                <image src="/assets/filter.png" class="filter-icon"></image>
+              </view>
+            </picker>
+            
+            <view class="date-range-picker">
+              <picker mode="date" fields="month" value="{{dateRange.start}}" bindchange="onReportStartChange">
+                <view class="date-picker">
+                  <text>{{dateRange.start || '开始月份'}}</text>
+                </view>
+              </picker>
+              <text class="date-separator">至</text>
+              <picker mode="date" fields="month" value="{{dateRange.end}}" bindchange="onReportEndChange">
+                <view class="date-picker">
+                  <text>{{dateRange.end || '结束月份'}}</text>
+                </view>
+              </picker>
+            </view>
+            
+            <button bindtap="clearFilters" class="clear-button">
+              <image src="/assets/clear.png" class="clear-icon"></image>
+              清空筛选
+            </button>
+          </view>
+        </view>
+        
+        <view class="charts-container">
+          <view class="chart-card">
+            <text class="chart-title">月度收益趋势</text>
+            <ec-canvas id="income-chart" canvas-id="income-chart"></ec-canvas>
+          </view>
+          
+          <view class="chart-card">
+            <text class="chart-title">资产负债构成</text>
+            <ec-canvas id="balance-chart" canvas-id="balance-chart"></ec-canvas>
+          </view>
+        </view>
+        
+        <view class="balance-details">
+          <view class="assets-detail">
+            <text class="detail-title">资产详情</text>
+            <block wx:for="{{assets}}" wx:key="id">
+              <view class="detail-item">
+                <text class="detail-name">{{item.name}}</text>
+                <text class="detail-value">¥{{item.value.toLocaleString()}}</text>
+              </view>
+            </block>
+            <view class="detail-total">
+              <text class="total-label">总资产</text>
+              <text class="total-value">¥{{totalAssets.toLocaleString()}}</text>
+            </view>
+          </view>
+          
+          <view class="liabilities-detail">
+            <text class="detail-title">负债详情</text>
+            <block wx:for="{{liabilities}}" wx:key="id">
+              <view class="detail-item">
+                <text class="detail-name">{{item.name}}</text>
+                <text class="detail-value">¥{{item.value.toLocaleString()}}</text>
+              </view>
+            </block>
+            <view class="detail-total">
+              <text class="total-label">总负债</text>
+              <text class="total-value">¥{{totalLiabilities.toLocaleString()}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+</scroll-view>
