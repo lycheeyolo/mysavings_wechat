@@ -1,8 +1,6 @@
-<!--index.wxml-->
+<!-- index.wxml -->
 <navigation-bar title="记账小助手" back="{{false}}" color="black" background="#FFF"></navigation-bar>
-<scroll-view class="scrollarea" scroll-y type="list">
-  <!-- index.wxml -->
-<view class="container">
+<scroll-view class="container" scroll-y="true">
   <!-- 头部区域 -->
   <view class="header">
     <view class="header-content">
@@ -18,7 +16,7 @@
         <text class="card-title">总收入</text>
         <image src="/assets/arrow-up.png" class="card-icon"></image>
       </view>
-      <text class="card-value">¥{{totalIncome.toLocaleString()}}</text>
+      <text class="card-value">{{totalIncome !== null && totalIncome !== undefined ? totalIncome : '0'}}</text>
       <text class="card-desc">本月收入</text>
     </view>
     
@@ -27,7 +25,7 @@
         <text class="card-title">总支出</text>
         <image src="/assets/arrow-down.png" class="card-icon"></image>
       </view>
-      <text class="card-value">¥{{totalExpense.toLocaleString()}}</text>
+      <text class="card-value">{{totalExpense !== null && totalExpense !== undefined ? totalExpense : '0'}}</text>
       <text class="card-desc">本月支出</text>
     </view>
     
@@ -36,7 +34,7 @@
         <text class="card-title">净资产</text>
         <image src="/assets/landmark.png" class="card-icon"></image>
       </view>
-      <text class="card-value">¥{{netWorth.toLocaleString()}}</text>
+      <text class="card-value">{{netWorth !== null && netWorth !== undefined ? netWorth : '0'}}</text>
       <text class="card-desc">当前净值</text>
     </view>
     
@@ -46,9 +44,9 @@
         <image src="/assets/trending-up.png" class="card-icon"></image>
       </view>
       <text class="card-value {{cashFlow >= 0 ? 'positive' : 'negative'}}">
-        ¥{{cashFlow.toLocaleString()}}
+        {{cashFlow !== null && cashFlow !== undefined ? cashFlow : '0'}}
       </text>
-      <text class="card-desc">本月结余  资产现金结余: ¥{{totalnetWorth.toLocaleString()}}</text>
+      <text class="card-desc">本月结余  资产现金结余: {{totalnetWorth !== null && totalnetWorth !== undefined ? totalnetWorth : '0'}}</text>
     </view>
   </view>
 
@@ -80,7 +78,7 @@
   <!-- 内容区域 -->
   <view class="content">
     <!-- 收支记录 -->
-    <view wx:if="{{activeTab === 'transactions'}}" class="tab-content">
+    <view class="tab-content {{activeTab === 'transactions' ? 'active' : ''}}">
       <view class="section">
         <view class="section-header">
           <text class="section-title">添加新记录</text>
@@ -90,7 +88,7 @@
           <view class="form-row">
             <view class="form-group">
               <text class="form-label">类型</text>
-              <picker value="{{newTransaction.type}}" range="{{['收入', '支出']}}" bindchange="onTypeChange">
+              <picker value="{{newTransaction.type}}" range="{{inout}}" bindchange="onTypeChange">
                 <view class="picker">
                   <text>{{newTransaction.type === 'income' ? '收入' : '支出'}}</text>
                   <image src="/assets/down-arrow.png" class="picker-arrow"></image>
@@ -100,7 +98,7 @@
             
             <view class="form-group">
               <text class="form-label">分类</text>
-              <picker value="{{newTransaction.category}}" range="{{categories}}" bindchange="onCategoryChange">
+              <picker value="{{newTransaction.category}}" range="{{categoryOptions}}" bindchange="onCategoryChange">
                 <view class="picker">
                   <text>{{newTransaction.category || '选择分类'}}</text>
                   <image src="/assets/down-arrow.png" class="picker-arrow"></image>
@@ -113,7 +111,7 @@
             <view class="form-group">
               <text class="form-label">金额 (¥)</text>
               <input 
-                type="number" 
+                type="digit" 
                 value="{{newTransaction.amount}}" 
                 placeholder="输入金额"
                 bindinput="onAmountChange"
@@ -173,16 +171,16 @@
             </view>
             
             <view class="filter-group">
-              <picker value="{{inoutfilterCategory}}" range="{{['全部', '收入', '支出']}}" bindchange="onInoutFilterChange">
+              <picker value="{{inoutfilterCategory}}" range="{{['全部', ...inout]}}" bindchange="onInoutFilterChange">
                 <view class="filter-picker">
-                  <text>{{inoutfilterCategory || '收支类型'}}</text>
+                  <text>{{inoutmapper[inoutfilterCategory]}}</text>
                   <image src="/assets/filter.png" class="filter-icon"></image>
                 </view>
               </picker>
               
-              <picker value="{{filterCategory}}" range="{{['全部', ...categories]}}" bindchange="onCategoryFilterChange">
+              <picker value="{{filterCategory}}" range="{{['所有分类',...categoryOptions]}}" bindchange="onCategoryFilterChange">
                 <view class="filter-picker">
-                  <text>{{filterCategory || '所有分类'}}</text>
+                  <text>{{filterCategory==='all'?'所有分类':filterCategory}}</text>
                   <image src="/assets/filter.png" class="filter-icon"></image>
                 </view>
               </picker>
@@ -202,7 +200,7 @@
           </view>
           
           <!-- 表体 -->
-          <scroll-view scroll-y class="table-body">
+          <view class="table-body">
             <block wx:if="{{isLoading}}">
               <view class="table-row">
                 <text class="table-cell loading">加载中...</text>
@@ -226,7 +224,7 @@
                   </text>
                   <text class="table-cell">{{item.category}}</text>
                   <text class="table-cell {{item.type === 'income' ? 'income-value' : 'expense-value'}}">
-                    {{item.type === 'income' ? '+' : '-'}}{{item.amount}}
+                    {{item.type === 'income' ? '+' : '-'}}{{item.amount !== null && item.amount !== undefined ? item.amount : '0'}}
                   </text>
                   <text class="table-cell">{{item.description}}</text>
                   <text class="table-cell">
@@ -235,13 +233,13 @@
                 </view>
               </block>
             </block>
-          </scroll-view>
+          </view>
         </view>
       </view>
     </view>
     
     <!-- 资产负债 -->
-    <view wx:if="{{activeTab === 'balance'}}" class="tab-content">
+    <view class="tab-content {{activeTab === 'balance' ? 'active' : ''}}">
       <view class="assets-section">
         <view class="section-header">
           <image src="/assets/wallet.png" class="section-icon"></image>
@@ -293,7 +291,7 @@
               <view class="asset-item">
                 <view class="asset-info">
                   <text class="asset-name">{{item.name}}</text>
-                  <text class="asset-value">¥{{item.value.toLocaleString()}}</text>
+                  <text class="asset-value">{{item.value !== null && item.value !== undefined ? item.value : '0'}}</text>
                 </view>
                 <button class="delete-button" bindtap="deleteAsset" data-id="{{item.id}}">删除</button>
               </view>
@@ -353,7 +351,7 @@
               <view class="liability-item">
                 <view class="liability-info">
                   <text class="liability-name">{{item.name}}</text>
-                  <text class="liability-value">¥{{item.value.toLocaleString()}}</text>
+                  <text class="liability-value">{{item.value !== null && item.value !== undefined ? item.value : '0'}}</text>
                 </view>
                 <button class="delete-button" bindtap="deleteLiability" data-id="{{item.id}}">删除</button>
               </view>
@@ -364,7 +362,7 @@
     </view>
     
     <!-- 财务报表 -->
-    <view wx:if="{{activeTab === 'reports'}}" class="tab-content">
+    <view class="tab-content {{activeTab === 'reports' ? 'active' : ''}}">
       <view class="section">
         <view class="section-header">
           <text class="section-title">财务报表</text>
@@ -416,12 +414,12 @@
             <block wx:for="{{assets}}" wx:key="id">
               <view class="detail-item">
                 <text class="detail-name">{{item.name}}</text>
-                <text class="detail-value">¥{{item.value.toLocaleString()}}</text>
+                <text class="detail-value">{{item.value !== null && item.value !== undefined ? item.value : '0'}}</text>
               </view>
             </block>
             <view class="detail-total">
               <text class="total-label">总资产</text>
-              <text class="total-value">¥{{totalAssets.toLocaleString()}}</text>
+              <text class="total-value">{{totalAssets !== null && totalAssets !== undefined ? totalAssets : '0'}}</text>
             </view>
           </view>
           
@@ -430,17 +428,21 @@
             <block wx:for="{{liabilities}}" wx:key="id">
               <view class="detail-item">
                 <text class="detail-name">{{item.name}}</text>
-                <text class="detail-value">¥{{item.value.toLocaleString()}}</text>
+                <text class="detail-value">{{item.value !== null && item.value !== undefined ? item.value : '0'}}</text>
               </view>
             </block>
             <view class="detail-total">
               <text class="total-label">总负债</text>
-              <text class="total-value">¥{{totalLiabilities.toLocaleString()}}</text>
+              <text class="total-value">{{totalLiabilities !== null && totalLiabilities !== undefined ? totalLiabilities : '0'}}</text>
             </view>
           </view>
         </view>
       </view>
     </view>
   </view>
-</view>
+
+  <br/>
+  <view class="footer">
+    <text class="footer-text">@科岛学习笔记</text>
+  </view>
 </scroll-view>
